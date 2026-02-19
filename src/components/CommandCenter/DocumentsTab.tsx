@@ -1,50 +1,28 @@
 import { useState } from "react";
 import { CheckCircle2, Circle, Upload, FileUp, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
-import { MOCK_DOCUMENTS, MOCK_TEAMS, MOCK_ACHIEVEMENTS } from "@/lib/mockData";
+import { MOCK_DOCUMENTS, MOCK_ACHIEVEMENTS, MOCK_CURRENT_USER } from "@/lib/mockData";
 import HelpBot from "./HelpBot";
 
 interface Props {
-  viewMode: "admin" | "user";
+  teamId: string;
+  currentUser: typeof MOCK_CURRENT_USER;
 }
 
-const DocumentsTab = ({ viewMode }: Props) => {
-  const [selectedTeam, setSelectedTeam] = useState(MOCK_TEAMS[0].id);
+const DocumentsTab = ({ teamId, currentUser }: Props) => {
+  const docs = MOCK_DOCUMENTS[teamId] ?? [];
 
   return (
     <div className="flex h-[calc(100vh-105px)]">
       {/* Main content */}
       <div className="flex-1 p-6 overflow-auto">
-        {viewMode === "admin" && (
-          <div className="mb-6">
-            <label className="text-xs text-muted-foreground font-mono uppercase tracking-wider mb-2 block">
-              Select Team
-            </label>
-            <div className="flex gap-2 flex-wrap">
-              {MOCK_TEAMS.map((team) => (
-                <button
-                  key={team.id}
-                  onClick={() => setSelectedTeam(team.id)}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    selectedTeam === team.id
-                      ? "bg-primary/15 text-primary border border-primary/30"
-                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                  }`}
-                >
-                  {team.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Achievements (user view only) */}
-        {viewMode === "user" && MOCK_ACHIEVEMENTS.length > 0 && (
+        {/* Achievements — always shown, tied to logged-in account */}
+        {MOCK_ACHIEVEMENTS.length > 0 && (
           <div className="mb-6">
             <h3 className="text-xs text-muted-foreground font-mono uppercase tracking-wider mb-3">
-              🏆 Recent Achievements
+              🏆 Your Achievements
             </h3>
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-wrap">
               {MOCK_ACHIEVEMENTS.map((ach, i) => (
                 <motion.div
                   key={ach.id}
@@ -70,7 +48,7 @@ const DocumentsTab = ({ viewMode }: Props) => {
             Document Checklist
           </h3>
           <div className="space-y-2">
-            {MOCK_DOCUMENTS.map((doc, i) => (
+            {docs.map((doc, i) => (
               <motion.div
                 key={doc.id}
                 initial={{ opacity: 0, x: -10 }}
