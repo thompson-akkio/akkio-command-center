@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, Map, BarChart3, Shield, User } from "lucide-react";
+import { FileText, Map, BarChart3, ChevronDown, Check } from "lucide-react";
 import DocumentsTab from "@/components/CommandCenter/DocumentsTab";
 import POCJourneyTab from "@/components/CommandCenter/POCJourneyTab";
 import EngagementTab from "@/components/CommandCenter/EngagementTab";
+import { MOCK_CURRENT_USER, MOCK_TEAMS } from "@/lib/mockData";
 
-type ViewMode = "admin" | "user";
 type TabId = "documents" | "journey" | "engagement";
 
 const tabs = [
@@ -15,54 +15,96 @@ const tabs = [
 ];
 
 const Index = () => {
-  const [viewMode, setViewMode] = useState<ViewMode>("admin");
+  const user = MOCK_CURRENT_USER;
+  const accessibleTeams = MOCK_TEAMS.filter((t) => user.teamIds.includes(t.id));
   const [activeTab, setActiveTab] = useState<TabId>("documents");
+  const [selectedTeamId, setSelectedTeamId] = useState(accessibleTeams[0]?.id ?? "");
+  const [teamDropdownOpen, setTeamDropdownOpen] = useState(false);
+
+  const selectedTeam = MOCK_TEAMS.find((t) => t.id === selectedTeamId) ?? accessibleTeams[0];
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* Header */}
       <header className="border-b border-border px-6 py-3 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-md bg-primary/20 flex items-center justify-center">
-            <span className="font-mono text-primary text-sm font-bold">A</span>
+        {/* Left: Logo + Team selector */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-md bg-primary/20 flex items-center justify-center">
+              <span className="font-mono text-primary text-sm font-bold">A</span>
+            </div>
+            <div>
+              <h1 className="text-sm font-semibold tracking-wide">COMMAND CENTER</h1>
+              <p className="text-xs text-muted-foreground font-mono">Akkio POC Operations</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-sm font-semibold tracking-wide">COMMAND CENTER</h1>
-            <p className="text-xs text-muted-foreground font-mono">Akkio POC Operations</p>
+
+          {/* Divider */}
+          <div className="w-px h-8 bg-border" />
+
+          {/* Team selector */}
+          <div className="relative">
+            <button
+              onClick={() => setTeamDropdownOpen((v) => !v)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-secondary hover:bg-secondary/80 transition-colors text-sm font-medium"
+            >
+              <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
+              <span>{selectedTeam?.name ?? "Select Team"}</span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-muted-foreground transition-transform ${
+                  teamDropdownOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            <AnimatePresence>
+              {teamDropdownOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute top-full left-0 mt-1.5 w-52 bg-card border border-border rounded-lg shadow-xl z-50 overflow-hidden"
+                >
+                  <div className="p-1">
+                    {accessibleTeams.map((team) => (
+                      <button
+                        key={team.id}
+                        onClick={() => {
+                          setSelectedTeamId(team.id);
+                          setTeamDropdownOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors ${
+                          team.id === selectedTeamId
+                            ? "bg-primary/10 text-primary"
+                            : "hover:bg-secondary text-foreground"
+                        }`}
+                      >
+                        <span>{team.name}</span>
+                        {team.id === selectedTeamId && <Check className="w-3.5 h-3.5" />}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
 
+        {/* Right: current user */}
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setViewMode("admin")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-              viewMode === "admin"
-                ? "bg-primary/15 text-primary border border-primary/30"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Shield className="w-3.5 h-3.5" />
-            Admin
-          </button>
-          <button
-            onClick={() => setViewMode("user")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-              viewMode === "user"
-                ? "bg-primary/15 text-primary border border-primary/30"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <User className="w-3.5 h-3.5" />
-            User
-          </button>
+          <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center">
+            <span className="text-xs font-bold text-primary">
+              {user.name.split(" ").map((n) => n[0]).join("")}
+            </span>
+          </div>
+          <span className="text-sm text-muted-foreground">{user.name}</span>
         </div>
       </header>
 
       {/* Tab Bar */}
       <nav className="border-b border-border px-6 flex gap-1 shrink-0">
         {tabs.map((tab) => {
-          // Hide engagement tab for user view
-          if (tab.id === "engagement" && viewMode === "user") return null;
           const isActive = activeTab === tab.id;
           return (
             <button
@@ -90,19 +132,33 @@ const Index = () => {
       <main className="flex-1 overflow-auto">
         <AnimatePresence mode="wait">
           <motion.div
-            key={activeTab + viewMode}
+            key={activeTab + selectedTeamId}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
             className="h-full"
           >
-            {activeTab === "documents" && <DocumentsTab viewMode={viewMode} />}
-            {activeTab === "journey" && <POCJourneyTab viewMode={viewMode} />}
-            {activeTab === "engagement" && viewMode === "admin" && <EngagementTab />}
+            {activeTab === "documents" && (
+              <DocumentsTab teamId={selectedTeamId} currentUser={user} />
+            )}
+            {activeTab === "journey" && (
+              <POCJourneyTab teamId={selectedTeamId} isAdmin={user.isAdmin} />
+            )}
+            {activeTab === "engagement" && (
+              <EngagementTab teamId={selectedTeamId} currentUser={user} />
+            )}
           </motion.div>
         </AnimatePresence>
       </main>
+
+      {/* Close dropdown on outside click */}
+      {teamDropdownOpen && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setTeamDropdownOpen(false)}
+        />
+      )}
     </div>
   );
 };

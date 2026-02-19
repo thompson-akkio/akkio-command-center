@@ -1,131 +1,138 @@
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, Clock, MessageSquare, TrendingUp, Users } from "lucide-react";
-import { MOCK_ENGAGEMENT } from "@/lib/mockData";
+import { motion } from "framer-motion";
+import { Clock, MessageSquare, TrendingUp, Users, Activity } from "lucide-react";
+import { MOCK_ENGAGEMENT, MOCK_TEAMS, MOCK_CURRENT_USER } from "@/lib/mockData";
 
-const EngagementTab = () => {
-  const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
+interface Props {
+  teamId: string;
+  currentUser: typeof MOCK_CURRENT_USER;
+}
 
-  const totalHoursAll = MOCK_ENGAGEMENT.reduce((sum, t) => sum + t.totalHours, 0);
-  const totalUsersAll = MOCK_ENGAGEMENT.reduce((sum, t) => sum + t.users.length, 0);
+const StatCard = ({
+  icon: Icon,
+  label,
+  value,
+  color = "text-primary",
+  delay = 0,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  color?: string;
+  delay?: number;
+}) => (
+  <motion.div
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay }}
+    className="bg-card border border-border rounded-lg p-4 card-hover"
+  >
+    <div className="flex items-center gap-2 mb-2">
+      <Icon className={`w-4 h-4 ${color}`} />
+      <span className="text-xs text-muted-foreground font-mono uppercase">{label}</span>
+    </div>
+    <p className="text-2xl font-bold font-mono">{value}</p>
+  </motion.div>
+);
+
+const EngagementTab = ({ teamId, currentUser }: Props) => {
+  const teamData = MOCK_ENGAGEMENT[teamId];
+  const team = MOCK_TEAMS.find((t) => t.id === teamId);
+  const myMetrics = teamData?.users.find((u) => u.name === currentUser.name);
+
+  if (!teamData || !team) {
+    return (
+      <div className="p-6 text-muted-foreground text-sm">No engagement data available for this team.</div>
+    );
+  }
+
+  const maxHours = Math.max(...teamData.users.map((u) => u.totalHours));
 
   return (
-    <div className="p-6">
-      <h2 className="text-lg font-semibold mb-1">User Engagement</h2>
-      <p className="text-sm text-muted-foreground mb-6">Data from BigQuery · Updated hourly</p>
+    <div className="p-6 space-y-8">
+      {/* Team metrics */}
+      <section>
+        <h2 className="text-lg font-semibold mb-1">{team.name} — Team Metrics</h2>
+        <p className="text-sm text-muted-foreground mb-4">Data from BigQuery · Updated hourly</p>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        <div className="bg-card border border-border rounded-lg p-4 card-hover">
-          <div className="flex items-center gap-2 mb-2">
-            <Clock className="w-4 h-4 text-primary" />
-            <span className="text-xs text-muted-foreground font-mono uppercase">Total Active Hours</span>
-          </div>
-          <p className="text-2xl font-bold font-mono">{totalHoursAll.toFixed(1)}</p>
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <StatCard icon={Clock} label="Total Active Hours" value={teamData.totalHours.toFixed(1)} color="text-primary" delay={0} />
+          <StatCard icon={Activity} label="Hours This Week" value={teamData.weekHours.toFixed(1)} color="text-info" delay={0.05} />
+          <StatCard icon={MessageSquare} label="Total Chats" value={teamData.totalChats.toString()} color="text-accent" delay={0.1} />
         </div>
-        <div className="bg-card border border-border rounded-lg p-4 card-hover">
-          <div className="flex items-center gap-2 mb-2">
-            <Users className="w-4 h-4 text-success" />
-            <span className="text-xs text-muted-foreground font-mono uppercase">Total Users</span>
-          </div>
-          <p className="text-2xl font-bold font-mono">{totalUsersAll}</p>
-        </div>
-        <div className="bg-card border border-border rounded-lg p-4 card-hover">
-          <div className="flex items-center gap-2 mb-2">
-            <TrendingUp className="w-4 h-4 text-accent" />
-            <span className="text-xs text-muted-foreground font-mono uppercase">Active Teams</span>
-          </div>
-          <p className="text-2xl font-bold font-mono">{MOCK_ENGAGEMENT.length}</p>
-        </div>
-      </div>
 
-      {/* Teams table */}
-      <div className="space-y-2">
-        {MOCK_ENGAGEMENT.map((team, ti) => (
-          <motion.div
-            key={team.teamId}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: ti * 0.05 }}
-          >
-            <button
-              onClick={() => setExpandedTeam(expandedTeam === team.teamId ? null : team.teamId)}
-              className="w-full flex items-center justify-between bg-card border border-border rounded-lg px-4 py-3 card-hover text-left"
-            >
-              <div className="flex items-center gap-3">
-                <ChevronRight
-                  className={`w-4 h-4 text-muted-foreground transition-transform ${
-                    expandedTeam === team.teamId ? "rotate-90" : ""
-                  }`}
-                />
-                <div>
-                  <p className="text-sm font-semibold">{team.teamName}</p>
-                  <p className="text-xs text-muted-foreground">{team.users.length} members</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-6">
-                <div className="text-right">
-                  <p className="text-sm font-mono font-bold">{team.totalHours.toFixed(1)}h</p>
-                  <p className="text-xs text-muted-foreground">total</p>
-                </div>
-                {/* Activity bar */}
-                <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary rounded-full transition-all"
-                    style={{ width: `${Math.min((team.totalHours / 70) * 100, 100)}%` }}
-                  />
-                </div>
-              </div>
-            </button>
+        {/* Team member breakdown */}
+        <div className="bg-card border border-border rounded-lg overflow-hidden">
+          <div className="px-4 py-3 border-b border-border">
+            <h3 className="text-xs font-mono uppercase text-muted-foreground tracking-wider">Team Member Breakdown</h3>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-secondary/30">
+                <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-mono uppercase">Member</th>
+                <th className="text-right px-4 py-2.5 text-xs text-muted-foreground font-mono uppercase">Total Hours</th>
+                <th className="text-right px-4 py-2.5 text-xs text-muted-foreground font-mono uppercase">This Week</th>
+                <th className="text-right px-4 py-2.5 text-xs text-muted-foreground font-mono uppercase">Chats</th>
+                <th className="px-4 py-2.5 w-32" />
+              </tr>
+            </thead>
+            <tbody>
+              {teamData.users.map((user, i) => {
+                const isMe = user.name === currentUser.name;
+                return (
+                  <motion.tr
+                    key={user.name}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.15 + i * 0.05 }}
+                    className={`border-b border-border/50 last:border-0 ${isMe ? "bg-primary/5" : ""}`}
+                  >
+                    <td className="px-4 py-3 font-medium">
+                      <span>{user.name}</span>
+                      {isMe && (
+                        <span className="ml-2 text-xs font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">You</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono">{user.totalHours}h</td>
+                    <td className="px-4 py-3 text-right font-mono">{user.weekHours}h</td>
+                    <td className="px-4 py-3 text-right font-mono">
+                      <span className="flex items-center justify-end gap-1">
+                        <MessageSquare className="w-3 h-3 text-muted-foreground" />
+                        {user.totalChats}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${isMe ? "bg-primary" : "bg-muted-foreground/40"}`}
+                          style={{ width: `${(user.totalHours / maxHours) * 100}%` }}
+                        />
+                      </div>
+                    </td>
+                  </motion.tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
-            <AnimatePresence>
-              {expandedTeam === team.teamId && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden"
-                >
-                  <div className="mt-1 ml-7 bg-secondary/50 border border-border rounded-lg overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-border">
-                          <th className="text-left px-4 py-2 text-xs text-muted-foreground font-mono uppercase">
-                            User
-                          </th>
-                          <th className="text-right px-4 py-2 text-xs text-muted-foreground font-mono uppercase">
-                            Total Hours
-                          </th>
-                          <th className="text-right px-4 py-2 text-xs text-muted-foreground font-mono uppercase">
-                            Past Week
-                          </th>
-                          <th className="text-right px-4 py-2 text-xs text-muted-foreground font-mono uppercase">
-                            Chats
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {team.users.map((user) => (
-                          <tr key={user.name} className="border-b border-border/50 last:border-0">
-                            <td className="px-4 py-2.5 font-medium">{user.name}</td>
-                            <td className="px-4 py-2.5 text-right font-mono">{user.totalHours}h</td>
-                            <td className="px-4 py-2.5 text-right font-mono">{user.weekHours}h</td>
-                            <td className="px-4 py-2.5 text-right font-mono flex items-center justify-end gap-1">
-                              <MessageSquare className="w-3 h-3 text-muted-foreground" />
-                              {user.totalChats}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        ))}
-      </div>
+      {/* My metrics */}
+      <section>
+        <h2 className="text-lg font-semibold mb-1">Your Usage</h2>
+        <p className="text-sm text-muted-foreground mb-4">Your individual metrics across all sessions</p>
+
+        {myMetrics ? (
+          <div className="grid grid-cols-3 gap-4">
+            <StatCard icon={Clock} label="My Total Hours" value={`${myMetrics.totalHours}h`} color="text-success" delay={0.2} />
+            <StatCard icon={TrendingUp} label="My Hours This Week" value={`${myMetrics.weekHours}h`} color="text-success" delay={0.25} />
+            <StatCard icon={MessageSquare} label="My Total Chats" value={myMetrics.totalChats.toString()} color="text-success" delay={0.3} />
+          </div>
+        ) : (
+          <div className="bg-card border border-border rounded-lg p-6 text-sm text-muted-foreground">
+            No personal usage data found for your account on this team.
+          </div>
+        )}
+      </section>
     </div>
   );
 };
