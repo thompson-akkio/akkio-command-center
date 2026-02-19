@@ -91,10 +91,13 @@ const DocumentsTab = ({ teamId, currentUser }: Props) => {
         <div className="border-2 border-dashed border-border rounded-lg p-8 flex flex-col items-center justify-center text-center hover:border-primary/30 transition-colors cursor-pointer">
           <FileUp className="w-10 h-10 text-muted-foreground mb-3" />
           <p className="text-sm font-medium text-muted-foreground">
-            Drag & drop files here, or click to browse
+            Drag & drop POC documents here, or click to browse
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            Supports PDF, CSV, XLSX, DOCX up to 50MB
+            Supports PDF, XLSX, DOCX up to 50MB
+          </p>
+          <p className="text-xs text-muted-foreground/60 mt-3 border-t border-border pt-3 max-w-xs">
+            📌 Note: Data files for analysis should be uploaded directly within the Akkio app — not here.
           </p>
         </div>
       </div>
