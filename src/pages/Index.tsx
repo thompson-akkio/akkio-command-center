@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FileText, Map, BarChart3, ChevronDown, Check } from "lucide-react";
 import DocumentsTab from "@/components/CommandCenter/DocumentsTab";
 import POCJourneyTab from "@/components/CommandCenter/POCJourneyTab";
 import EngagementTab from "@/components/CommandCenter/EngagementTab";
 import { MOCK_CURRENT_USER, MOCK_TEAMS } from "@/lib/mockData";
+import { supabase } from "@/lib/supabase";
+import { useOrgs } from "@/hooks/useEngagement";
 
 type TabId = "documents" | "journey" | "engagement";
 
@@ -14,14 +16,34 @@ const tabs = [
   { id: "engagement" as TabId, label: "Engagement", icon: BarChart3 },
 ];
 
+const ALL_USERS_OPTION = { id: "all", name: "All Users" };
+
 const Index = () => {
   const user = MOCK_CURRENT_USER;
-  const accessibleTeams = MOCK_TEAMS.filter((t) => user.teamIds.includes(t.id));
+  const isSupabaseConfigured = !!supabase;
+  const { data: orgs } = useOrgs();
+
+  const mockTeams = MOCK_TEAMS.filter((t) => user.teamIds.includes(t.id));
+
+  // Build dropdown options: when Supabase is configured, use real orgs; otherwise mock teams
+  const dropdownOptions = useMemo(() => {
+    if (isSupabaseConfigured) {
+      const orgOptions = (orgs ?? []).map((o) => ({ id: o.id, name: o.name }));
+      return [ALL_USERS_OPTION, ...orgOptions];
+    }
+    return mockTeams.map((t) => ({ id: t.id, name: t.name }));
+  }, [isSupabaseConfigured, orgs, mockTeams]);
+
   const [activeTab, setActiveTab] = useState<TabId>("documents");
-  const [selectedTeamId, setSelectedTeamId] = useState(accessibleTeams[0]?.id ?? "");
+  const [selectedOptionId, setSelectedOptionId] = useState(dropdownOptions[0]?.id ?? "all");
   const [teamDropdownOpen, setTeamDropdownOpen] = useState(false);
 
-  const selectedTeam = MOCK_TEAMS.find((t) => t.id === selectedTeamId) ?? accessibleTeams[0];
+  const selectedOption = dropdownOptions.find((o) => o.id === selectedOptionId) ?? dropdownOptions[0];
+
+  // Derive orgName for engagement filtering (null = all users)
+  const selectedOrgName = isSupabaseConfigured && selectedOption?.id !== "all"
+    ? selectedOption?.name ?? null
+    : null;
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -49,7 +71,7 @@ const Index = () => {
               className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-secondary hover:bg-secondary/80 transition-colors text-sm font-medium"
             >
               <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
-              <span>{selectedTeam?.name ?? "Select Team"}</span>
+              <span>{selectedOption?.name ?? "Select Team"}</span>
               <ChevronDown
                 className={`w-3.5 h-3.5 text-muted-foreground transition-transform ${
                   teamDropdownOpen ? "rotate-180" : ""
@@ -67,21 +89,21 @@ const Index = () => {
                   className="absolute top-full left-0 mt-1.5 w-52 bg-card border border-border rounded-lg shadow-xl z-50 overflow-hidden"
                 >
                   <div className="p-1">
-                    {accessibleTeams.map((team) => (
+                    {dropdownOptions.map((option) => (
                       <button
-                        key={team.id}
+                        key={option.id}
                         onClick={() => {
-                          setSelectedTeamId(team.id);
+                          setSelectedOptionId(option.id);
                           setTeamDropdownOpen(false);
                         }}
                         className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors ${
-                          team.id === selectedTeamId
+                          option.id === selectedOptionId
                             ? "bg-primary/10 text-primary"
                             : "hover:bg-secondary text-foreground"
                         }`}
                       >
-                        <span>{team.name}</span>
-                        {team.id === selectedTeamId && <Check className="w-3.5 h-3.5" />}
+                        <span>{option.name}</span>
+                        {option.id === selectedOptionId && <Check className="w-3.5 h-3.5" />}
                       </button>
                     ))}
                   </div>
@@ -132,7 +154,7 @@ const Index = () => {
       <main className="flex-1 overflow-auto">
         <AnimatePresence mode="wait">
           <motion.div
-            key={activeTab + selectedTeamId}
+            key={activeTab + selectedOptionId}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
@@ -140,13 +162,13 @@ const Index = () => {
             className="h-full"
           >
             {activeTab === "documents" && (
-              <DocumentsTab teamId={selectedTeamId} currentUser={user} />
+              <DocumentsTab teamId={selectedOptionId} currentUser={user} />
             )}
             {activeTab === "journey" && (
-              <POCJourneyTab teamId={selectedTeamId} isAdmin={user.isAdmin} />
+              <POCJourneyTab teamId={selectedOptionId} isAdmin={user.isAdmin} />
             )}
             {activeTab === "engagement" && (
-              <EngagementTab teamId={selectedTeamId} currentUser={user} />
+              <EngagementTab teamId={selectedOptionId} orgName={selectedOrgName} currentUser={user} />
             )}
           </motion.div>
         </AnimatePresence>
