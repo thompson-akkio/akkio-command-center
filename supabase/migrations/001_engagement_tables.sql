@@ -12,15 +12,14 @@ CREATE TABLE IF NOT EXISTS users (
   project_id TEXT NOT NULL,
   user_id TEXT NOT NULL,
   email TEXT,
-  org_names JSONB,
-  team_id TEXT,
+  current_org_name TEXT,
   created_at TIMESTAMPTZ,
   updated_at TIMESTAMPTZ DEFAULT now(),
   PRIMARY KEY (project_id, user_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-CREATE INDEX IF NOT EXISTS idx_users_team ON users(project_id, team_id);
+CREATE INDEX IF NOT EXISTS idx_users_org ON users(project_id, current_org_name);
 
 -- Daily active minutes per user per page (from BigQuery daily_active_user_page_minutes)
 CREATE TABLE IF NOT EXISTS daily_active_minutes (
@@ -90,7 +89,7 @@ SELECT
   u.project_id,
   u.user_id,
   u.email,
-  u.team_id,
+  u.current_org_name,
   COALESCE(ROUND(SUM(dam.active_minutes) / 60.0, 1), 0) AS total_hours,
   COALESCE(ROUND(
     SUM(CASE WHEN dam.activity_date >= CURRENT_DATE - INTERVAL '7 days' THEN dam.active_minutes ELSE 0 END) / 60.0,
@@ -106,4 +105,4 @@ LEFT JOIN (
   GROUP BY project_id, user_id
 ) chat_counts
   ON chat_counts.project_id = u.project_id AND chat_counts.user_id = u.user_id
-GROUP BY u.project_id, u.user_id, u.email, u.team_id, chat_counts.total_chats;
+GROUP BY u.project_id, u.user_id, u.email, u.current_org_name, chat_counts.total_chats;

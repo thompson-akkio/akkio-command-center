@@ -183,15 +183,14 @@ async function syncUsers(accessToken: string, projectId: string) {
     accessToken,
     projectId,
     `SELECT
-       u.user_id,
-       u.email,
-       uc.orgs_list_json,
-       FORMAT_TIMESTAMP('%Y-%m-%dT%H:%M:%SZ', u.created_at) AS created_at
-     FROM \`${projectId}.lakehouse.dim_user\` u
-     LEFT JOIN \`${projectId}.analytics.users_clean\` uc
-       ON u.user_id = uc.user_id
-     WHERE u.email IS NOT NULL
-       AND u.created_at > TIMESTAMP('${lastSync}')
+       user_id,
+       email,
+       current_org_name,
+       FORMAT_TIMESTAMP('%Y-%m-%dT%H:%M:%SZ', created_at) AS created_at
+     FROM \`${projectId}.lakehouse.dim_user\`
+     WHERE email IS NOT NULL
+       AND LOWER(email) NOT LIKE '%akkio%'
+       AND created_at > TIMESTAMP('${lastSync}')
     `
   );
 
@@ -202,7 +201,7 @@ async function syncUsers(accessToken: string, projectId: string) {
       project_id: projectId,
       user_id: String(r.user_id),
       email: String(r.email),
-      org_names: r.orgs_list_json ? JSON.parse(String(r.orgs_list_json)) : null,
+      current_org_name: r.current_org_name ? String(r.current_org_name) : null,
       created_at: r.created_at,
       updated_at: new Date().toISOString(),
     })),
