@@ -40,22 +40,18 @@ async function fetchOrgs(): Promise<OrgOption[]> {
 
   const { data, error } = await supabase
     .from("users")
-    .select("org_names")
+    .select("current_org_name")
     .eq("project_id", BQ_PROJECT_ID)
-    .not("org_names", "is", null);
+    .not("current_org_name", "is", null);
 
   if (error) throw error;
   if (!data) return [];
 
-  // org_names is a JSONB array like ["Acme Corp", "Other Org"]
+  // Deduplicate org names client-side
   const nameSet = new Set<string>();
   for (const row of data) {
-    const orgs = row.org_names as string[] | null;
-    if (Array.isArray(orgs)) {
-      for (const name of orgs) {
-        if (typeof name === "string" && name.trim()) nameSet.add(name.trim());
-      }
-    }
+    const name = row.current_org_name as string | null;
+    if (typeof name === "string" && name.trim()) nameSet.add(name.trim());
   }
 
   return Array.from(nameSet)
@@ -82,29 +78,14 @@ async function fetchTeamEngagement(
 ): Promise<TeamEngagement | null> {
   if (!supabase) return null;
 
-  let userIds: string[] | null = null;
-
-  // If an org is selected, find user_ids belonging to that org
-  if (orgName) {
-    const { data: orgUsers, error: orgErr } = await supabase
-      .from("users")
-      .select("user_id")
-      .eq("project_id", BQ_PROJECT_ID)
-      .contains("org_names", JSON.stringify([orgName]));
-
-    if (orgErr) throw orgErr;
-    userIds = orgUsers?.map((u) => u.user_id) ?? [];
-    if (userIds.length === 0) return null;
-  }
-
-  // Fetch engagement data, optionally filtered by user_ids
+  // Fetch engagement data, optionally filtered by org name
   let query = supabase
     .from("team_engagement_summary")
     .select("user_id, email, total_hours, week_hours, total_chats")
     .eq("project_id", BQ_PROJECT_ID);
 
-  if (userIds) {
-    query = query.in("user_id", userIds);
+  if (orgName) {
+    query = query.eq("current_org_name", orgName);
   }
 
   const { data, error } = await query;
