@@ -71,6 +71,86 @@ export function useOrgs() {
   });
 }
 
+// ---------- Daily Active Minutes (charts) ----------
+
+export interface DailyActiveRow {
+  user_id: string;
+  email: string | null;
+  page_title: string;
+  activity_date: string; // "YYYY-MM-DD"
+  active_minutes: number;
+}
+
+async function fetchDailyActiveMinutes(
+  orgName: string | null
+): Promise<DailyActiveRow[]> {
+  if (!supabase) return [];
+
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const fromDate = thirtyDaysAgo.toISOString().split("T")[0];
+
+  // When filtering by org, first get the user IDs for that org,
+  // then filter daily_active_minutes. This avoids relying on FK joins
+  // which were dropped in production.
+  let userIds: string[] | null = null;
+  if (orgName) {
+    const { data: orgUsers, error: orgErr } = await supabase
+      .from("users")
+      .select("user_id, email")
+      .eq("project_id", BQ_PROJECT_ID)
+      .eq("current_org_name", orgName);
+    if (orgErr) throw orgErr;
+    userIds = orgUsers?.map((u) => u.user_id) ?? [];
+    if (userIds.length === 0) return [];
+  }
+
+  // Build email lookup from users table
+  const { data: allUsers, error: usersErr } = await supabase
+    .from("users")
+    .select("user_id, email")
+    .eq("project_id", BQ_PROJECT_ID);
+  if (usersErr) throw usersErr;
+
+  const emailMap = new Map<string, string | null>();
+  for (const u of allUsers ?? []) {
+    emailMap.set(u.user_id, u.email);
+  }
+
+  let query = supabase
+    .from("daily_active_minutes")
+    .select("user_id, page_title, activity_date, active_minutes")
+    .eq("project_id", BQ_PROJECT_ID)
+    .gte("activity_date", fromDate)
+    .order("activity_date", { ascending: true })
+    .limit(10000);
+
+  if (userIds) {
+    query = query.in("user_id", userIds);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  return (data ?? []).map((row) => ({
+    user_id: row.user_id,
+    email: emailMap.get(row.user_id) ?? null,
+    page_title: row.page_title || "(Unknown Page)",
+    activity_date: row.activity_date,
+    active_minutes: Number(row.active_minutes) || 0,
+  }));
+}
+
+export function useDailyActiveMinutes(orgName: string | null) {
+  return useQuery({
+    queryKey: ["dailyActiveMinutes", BQ_PROJECT_ID, orgName],
+    queryFn: () => fetchDailyActiveMinutes(orgName),
+    enabled: !!supabase,
+    staleTime: 5 * 60 * 1000,
+    refetchInterval: 60 * 60 * 1000,
+  });
+}
+
 // ---------- Engagement ----------
 
 async function fetchTeamEngagement(

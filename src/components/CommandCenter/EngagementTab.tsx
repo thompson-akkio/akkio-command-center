@@ -1,8 +1,13 @@
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { Clock, MessageSquare, TrendingUp, Activity, Loader2, AlertCircle } from "lucide-react";
 import { MOCK_ENGAGEMENT, MOCK_TEAMS, MOCK_CURRENT_USER } from "@/lib/mockData";
 import { supabase } from "@/lib/supabase";
-import { useTeamEngagement, type TeamEngagement } from "@/hooks/useEngagement";
+import { useTeamEngagement, useDailyActiveMinutes, type TeamEngagement } from "@/hooks/useEngagement";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import DailySessionChart from "./charts/DailySessionChart";
+import PageMinutesChart from "./charts/PageMinutesChart";
+import { buildUserColorMap } from "./charts/chartColors";
 
 interface Props {
   teamId: string;
@@ -42,6 +47,7 @@ const EngagementTab = ({ teamId, orgName, currentUser }: Props) => {
   const isSupabaseConfigured = !!supabase;
 
   const { data: liveData, isLoading, error } = useTeamEngagement(teamId, orgName);
+  const { data: dailyData, isLoading: dailyLoading } = useDailyActiveMinutes(orgName);
 
   // Resolve data source: live Supabase data or mock fallback
   const mockData = MOCK_ENGAGEMENT[teamId];
@@ -62,6 +68,27 @@ const EngagementTab = ({ teamId, orgName, currentUser }: Props) => {
           })),
         }
       : null;
+
+  // Build stable color map from team users (or daily data users as fallback)
+  const userColorMap = useMemo(() => {
+    if (teamData?.users.length) {
+      return buildUserColorMap(
+        teamData.users.map((u) => ({ userId: u.userId, email: u.email }))
+      );
+    }
+    if (dailyData?.length) {
+      const seen = new Map<string, string | null>();
+      for (const row of dailyData) {
+        if (!seen.has(row.user_id)) {
+          seen.set(row.user_id, row.email);
+        }
+      }
+      return buildUserColorMap(
+        [...seen.entries()].map(([userId, email]) => ({ userId, email }))
+      );
+    }
+    return new Map();
+  }, [teamData, dailyData]);
 
   if (!isSupabaseConfigured && !mockTeam) {
     return (
@@ -114,6 +141,47 @@ const EngagementTab = ({ teamId, orgName, currentUser }: Props) => {
           <StatCard icon={Activity} label="Hours This Week" value={teamData.weekHours.toFixed(1)} color="text-info" delay={0.05} />
           <StatCard icon={MessageSquare} label="Total Chats" value={teamData.totalChats.toString()} color="text-accent" delay={0.1} />
         </div>
+
+        {/* Charts */}
+        {isSupabaseConfigured && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+                  Daily Active Session Time
+                </CardTitle>
+                <CardDescription>Last 30 days, minutes per day by user</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {dailyLoading ? (
+                  <div className="h-[300px] flex items-center justify-center">
+                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <DailySessionChart data={dailyData ?? []} userColorMap={userColorMap} />
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+                  Active Minutes by Page
+                </CardTitle>
+                <CardDescription>Total minutes per page, stacked by user</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {dailyLoading ? (
+                  <div className="h-[300px] flex items-center justify-center">
+                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <PageMinutesChart data={dailyData ?? []} userColorMap={userColorMap} />
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Team member breakdown */}
         <div className="bg-card border border-border rounded-lg overflow-hidden">
