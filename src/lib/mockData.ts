@@ -31,43 +31,46 @@ export interface MockDocument {
   uploaded: boolean;
   uploadedBy?: string;
   date?: string;
+  description?: string;
+  /** "standard" = added by admin to the checklist; "additional" = uploaded by client under "Other" */
+  category: "standard" | "additional";
 }
 
 export const MOCK_DOCUMENTS: Record<string, MockDocument[]> = {
   "team-1": [
-    { id: "doc-1", name: "Data Dictionary", required: true, uploaded: true, uploadedBy: "Alice Johnson", date: "2026-02-05" },
-    { id: "doc-2", name: "Use Case Brief", required: true, uploaded: true, uploadedBy: "Bob Smith", date: "2026-02-07" },
-    { id: "doc-3", name: "Sample Dataset (CSV)", required: true, uploaded: false },
-    { id: "doc-4", name: "Success Criteria", required: true, uploaded: false },
-    { id: "doc-5", name: "Integration Requirements", required: false, uploaded: false },
-    { id: "doc-6", name: "Stakeholder List", required: false, uploaded: true, uploadedBy: "Carol Davis", date: "2026-02-10" },
+    { id: "doc-1", name: "Data Dictionary", required: true, uploaded: true, uploadedBy: "Alice Johnson", date: "2026-02-05", category: "standard" },
+    { id: "doc-2", name: "Use Case Brief", required: true, uploaded: true, uploadedBy: "Bob Smith", date: "2026-02-07", category: "standard" },
+    { id: "doc-3", name: "Sample Dataset (CSV)", required: true, uploaded: false, category: "standard" },
+    { id: "doc-4", name: "Success Criteria", required: true, uploaded: false, category: "standard" },
+    { id: "doc-5", name: "Integration Requirements", required: false, uploaded: false, category: "standard" },
+    { id: "doc-6", name: "Stakeholder List", required: false, uploaded: true, uploadedBy: "Carol Davis", date: "2026-02-10", category: "standard" },
   ],
   "team-2": [
-    { id: "doc-1", name: "Data Dictionary", required: true, uploaded: false },
-    { id: "doc-2", name: "Use Case Brief", required: true, uploaded: true, uploadedBy: "Dave Wilson", date: "2026-02-06" },
-    { id: "doc-3", name: "Sample Dataset (CSV)", required: true, uploaded: false },
-    { id: "doc-4", name: "Success Criteria", required: false, uploaded: false },
+    { id: "doc-1", name: "Data Dictionary", required: true, uploaded: false, category: "standard" },
+    { id: "doc-2", name: "Use Case Brief", required: true, uploaded: true, uploadedBy: "Dave Wilson", date: "2026-02-06", category: "standard" },
+    { id: "doc-3", name: "Sample Dataset (CSV)", required: true, uploaded: false, category: "standard" },
+    { id: "doc-4", name: "Success Criteria", required: false, uploaded: false, category: "standard" },
   ],
   "team-3": [
-    { id: "doc-1", name: "Data Dictionary", required: true, uploaded: true, uploadedBy: "Frank Miller", date: "2026-02-01" },
-    { id: "doc-2", name: "Use Case Brief", required: true, uploaded: true, uploadedBy: "Grace Lee", date: "2026-02-02" },
-    { id: "doc-3", name: "Sample Dataset (CSV)", required: true, uploaded: true, uploadedBy: "Frank Miller", date: "2026-02-03" },
-    { id: "doc-4", name: "Success Criteria", required: true, uploaded: true, uploadedBy: "Grace Lee", date: "2026-02-04" },
-    { id: "doc-5", name: "Integration Requirements", required: false, uploaded: true, uploadedBy: "Hank Taylor", date: "2026-02-05" },
-    { id: "doc-6", name: "Stakeholder List", required: false, uploaded: false },
+    { id: "doc-1", name: "Data Dictionary", required: true, uploaded: true, uploadedBy: "Frank Miller", date: "2026-02-01", category: "standard" },
+    { id: "doc-2", name: "Use Case Brief", required: true, uploaded: true, uploadedBy: "Grace Lee", date: "2026-02-02", category: "standard" },
+    { id: "doc-3", name: "Sample Dataset (CSV)", required: true, uploaded: true, uploadedBy: "Frank Miller", date: "2026-02-03", category: "standard" },
+    { id: "doc-4", name: "Success Criteria", required: true, uploaded: true, uploadedBy: "Grace Lee", date: "2026-02-04", category: "standard" },
+    { id: "doc-5", name: "Integration Requirements", required: false, uploaded: true, uploadedBy: "Hank Taylor", date: "2026-02-05", category: "standard" },
+    { id: "doc-6", name: "Stakeholder List", required: false, uploaded: false, category: "standard" },
   ],
   "team-4": [
-    { id: "doc-1", name: "Data Dictionary", required: true, uploaded: false },
-    { id: "doc-2", name: "Use Case Brief", required: true, uploaded: false },
-    { id: "doc-3", name: "Sample Dataset (CSV)", required: true, uploaded: false },
+    { id: "doc-1", name: "Data Dictionary", required: true, uploaded: false, category: "standard" },
+    { id: "doc-2", name: "Use Case Brief", required: true, uploaded: false, category: "standard" },
+    { id: "doc-3", name: "Sample Dataset (CSV)", required: true, uploaded: false, category: "standard" },
   ],
   "team-5": [
-    { id: "doc-1", name: "Data Dictionary", required: true, uploaded: true, uploadedBy: "Karen Black", date: "2026-01-28" },
-    { id: "doc-2", name: "Use Case Brief", required: true, uploaded: true, uploadedBy: "Karen Black", date: "2026-01-29" },
-    { id: "doc-3", name: "Sample Dataset (CSV)", required: true, uploaded: true, uploadedBy: "Leo Green", date: "2026-01-30" },
-    { id: "doc-4", name: "Success Criteria", required: true, uploaded: true, uploadedBy: "Leo Green", date: "2026-01-31" },
-    { id: "doc-5", name: "Integration Requirements", required: false, uploaded: true, uploadedBy: "Mia Hall", date: "2026-02-02" },
-    { id: "doc-6", name: "Stakeholder List", required: false, uploaded: true, uploadedBy: "Mia Hall", date: "2026-02-03" },
+    { id: "doc-1", name: "Data Dictionary", required: true, uploaded: true, uploadedBy: "Karen Black", date: "2026-01-28", category: "standard" },
+    { id: "doc-2", name: "Use Case Brief", required: true, uploaded: true, uploadedBy: "Karen Black", date: "2026-01-29", category: "standard" },
+    { id: "doc-3", name: "Sample Dataset (CSV)", required: true, uploaded: true, uploadedBy: "Leo Green", date: "2026-01-30", category: "standard" },
+    { id: "doc-4", name: "Success Criteria", required: true, uploaded: true, uploadedBy: "Leo Green", date: "2026-01-31", category: "standard" },
+    { id: "doc-5", name: "Integration Requirements", required: false, uploaded: true, uploadedBy: "Mia Hall", date: "2026-02-02", category: "standard" },
+    { id: "doc-6", name: "Stakeholder List", required: false, uploaded: true, uploadedBy: "Mia Hall", date: "2026-02-03", category: "standard" },
   ],
 };
 
