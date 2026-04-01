@@ -31,42 +31,36 @@ create index if not exists idx_documents_team_id on public.documents (team_id);
 -- Enable RLS on the table
 alter table public.documents enable row level security;
 
--- Anyone authenticated can read documents for teams they have access to.
--- (Team membership enforcement will be handled at the application layer until
---  a teams/memberships table exists. For now, allow all authenticated reads.)
-create policy "Authenticated users can read documents"
+-- Allow both anon and authenticated access until auth is implemented.
+-- The anon role is used by the Supabase JS client before a user logs in.
+create policy "Allow read documents"
   on public.documents
   for select
-  to authenticated
+  to anon, authenticated
   using (true);
 
--- Only Akkio admins (identified by a custom claim or role) can insert standard items.
--- All authenticated users can insert additional items (uploads via "Other").
-create policy "Authenticated users can insert documents"
+create policy "Allow insert documents"
   on public.documents
   for insert
-  to authenticated
+  to anon, authenticated
   with check (true);
 
--- Only admins can update standard document metadata (name, required).
--- Any authenticated user can mark a document as uploaded.
-create policy "Authenticated users can update documents"
+create policy "Allow update documents"
   on public.documents
   for update
-  to authenticated
+  to anon, authenticated
   using (true)
   with check (true);
 
--- Only admins can delete documents.
-create policy "Authenticated users can delete documents"
+create policy "Allow delete documents"
   on public.documents
   for delete
-  to authenticated
+  to anon, authenticated
   using (true);
 
 -- ============================================================================
--- NOTE: The policies above are intentionally permissive (all authenticated).
--- Once auth is fully implemented with user roles, tighten these to check:
---   - auth.jwt() ->> 'is_admin' = 'true'  for admin-only operations
---   - team membership for read access
+-- TODO: Once auth is implemented, tighten these policies:
+--   - Remove `anon` from all policies
+--   - Admin-only operations: check auth.jwt() ->> 'is_admin' = 'true'
+--   - Read access: check team membership
 -- ============================================================================

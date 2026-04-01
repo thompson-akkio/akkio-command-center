@@ -43,6 +43,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/hooks/use-toast";
 
 interface Props {
   teamId: string;
@@ -98,15 +99,18 @@ const DocumentsTab = ({ teamId, teamName, currentUser }: Props) => {
     const trimmed = formName.trim();
     if (!trimmed) return;
 
+    const onError = (err: Error) =>
+      toast({ title: "Failed to save document", description: err.message, variant: "destructive" });
+
     if (editingDoc) {
       updateMutation.mutate(
         { id: editingDoc.id, teamId, name: trimmed, required: formRequired },
-        { onSuccess: () => setAddDialogOpen(false) },
+        { onSuccess: () => setAddDialogOpen(false), onError },
       );
     } else {
       addMutation.mutate(
         { teamId, name: trimmed, required: formRequired, category: "standard" },
-        { onSuccess: () => setAddDialogOpen(false) },
+        { onSuccess: () => setAddDialogOpen(false), onError },
       );
     }
   };
@@ -116,7 +120,11 @@ const DocumentsTab = ({ teamId, teamName, currentUser }: Props) => {
     if (!deleteTarget) return;
     deleteMutation.mutate(
       { id: deleteTarget.id, teamId },
-      { onSuccess: () => setDeleteTarget(null) },
+      {
+        onSuccess: () => setDeleteTarget(null),
+        onError: (err) =>
+          toast({ title: "Failed to delete document", description: err.message, variant: "destructive" }),
+      },
     );
   };
 
@@ -143,6 +151,12 @@ const DocumentsTab = ({ teamId, teamName, currentUser }: Props) => {
   const handleUploadSubmit = () => {
     if (!selectedFile) return;
 
+    const uploadCallbacks = {
+      onSuccess: () => setUploadDialogOpen(false),
+      onError: (err: Error) =>
+        toast({ title: "Upload failed", description: err.message, variant: "destructive" as const }),
+    };
+
     if (uploadIsOther) {
       const title = otherTitle.trim();
       if (!title) return;
@@ -157,7 +171,7 @@ const DocumentsTab = ({ teamId, teamName, currentUser }: Props) => {
           required: false,
           uploadedBy: currentUser.name,
         },
-        { onSuccess: () => setUploadDialogOpen(false) },
+        uploadCallbacks,
       );
     } else {
       const targetDoc = standardDocs.find((d) => d.id === uploadTargetId);
@@ -172,7 +186,7 @@ const DocumentsTab = ({ teamId, teamName, currentUser }: Props) => {
           required: targetDoc?.required ?? false,
           uploadedBy: currentUser.name,
         },
-        { onSuccess: () => setUploadDialogOpen(false) },
+        uploadCallbacks,
       );
     }
   };
