@@ -106,7 +106,7 @@ const Index = () => {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -6, scale: 0.97 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute top-full left-0 mt-1.5 w-52 bg-card border border-border rounded-lg shadow-xl z-50 overflow-hidden"
+                  className="absolute top-full left-0 mt-1.5 w-52 bg-card border border-border rounded-lg shadow-xl z-[100] overflow-hidden"
                 >
                   <div className="p-1">
                     {dropdownOptions.map((option) => (
@@ -156,7 +156,7 @@ const Index = () => {
       </header>
 
       {/* Tab Bar */}
-      <nav className="border-b border-border px-6 flex gap-1 shrink-0">
+      <nav className="relative z-40 border-b border-border px-6 flex gap-1 shrink-0">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
