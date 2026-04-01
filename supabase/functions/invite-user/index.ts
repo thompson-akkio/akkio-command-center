@@ -86,10 +86,13 @@ Deno.serve(async (req) => {
     }
 
     // ── Invite the user via Supabase Auth Admin API ───────────────────
+    // APP_URL can be set as a secret; falls back to the Supabase Site URL config
+    const appUrl = Deno.env.get("APP_URL") || SUPABASE_URL;
+
     const { data: inviteData, error: inviteError } =
       await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
         data: { full_name: full_name ?? "" },
-        redirectTo: `${SUPABASE_URL.replace(".supabase.co", "")}/login`,
+        redirectTo: appUrl,
       });
 
     if (inviteError) {

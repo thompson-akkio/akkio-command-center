@@ -11,12 +11,21 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-/** Redirects to /login if the user is not authenticated (when Supabase is configured). */
+/** Redirects to /login if the user is not authenticated (when Supabase is configured).
+ *  Also intercepts invite/recovery tokens that land on "/" and redirects to /login
+ *  so the set-password screen is shown instead of the dashboard. */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
 
   // If Supabase isn't configured, skip auth (dev/mock mode)
   if (!supabase) return <>{children}</>;
+
+  // Invite/recovery links land on "/" with #access_token=...&type=invite (or type=recovery).
+  // Redirect to /login so the set-password form is shown.
+  const hash = window.location.hash;
+  if (hash.includes("type=invite") || hash.includes("type=recovery")) {
+    return <Navigate to={`/login${hash}`} replace />;
+  }
 
   if (loading) {
     return (
