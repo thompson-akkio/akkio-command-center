@@ -36,8 +36,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [teams, setTeams] = useState<TeamMembership[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch profile + team memberships for a given user ID
-  async function fetchUserData(userId: string) {
+  // Fetch profile + team memberships for a given user ID.
+  // Retries once after a short delay to handle the case where the profile
+  // trigger hasn't committed yet (e.g. right after accepting an invite).
+  async function fetchUserData(userId: string, retry = true) {
     if (!supabase) return;
 
     const [profileRes, teamsRes] = await Promise.all([
@@ -47,6 +49,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (profileRes.data) {
       setProfile(profileRes.data as Profile);
+    } else if (retry) {
+      // Profile may not exist yet if the trigger is still running
+      console.warn("Profile not found, retrying in 1s...", profileRes.error?.message);
+      setTimeout(() => fetchUserData(userId, false), 1000);
     }
     if (teamsRes.data) {
       setTeams(teamsRes.data as TeamMembership[]);
