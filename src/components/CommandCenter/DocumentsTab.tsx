@@ -18,6 +18,7 @@ import {
   useDocuments,
   useAddDocument,
   useUpdateDocument,
+  useUploadDocument,
   useDeleteDocument,
   type Document,
 } from "@/hooks/useDocuments";
@@ -45,14 +46,16 @@ import {
 
 interface Props {
   teamId: string;
+  teamName: string;
   currentUser: typeof MOCK_CURRENT_USER;
 }
 
-const DocumentsTab = ({ teamId, currentUser }: Props) => {
+const DocumentsTab = ({ teamId, teamName, currentUser }: Props) => {
   // ── Data from Supabase (or mock fallback) ────────────────────────────
   const { data: docs = [], isLoading } = useDocuments(teamId);
   const addMutation = useAddDocument();
   const updateMutation = useUpdateDocument();
+  const uploadMutation = useUploadDocument();
   const deleteMutation = useDeleteDocument();
 
   const isAdmin = currentUser.isAdmin;
@@ -143,29 +146,35 @@ const DocumentsTab = ({ teamId, currentUser }: Props) => {
     if (uploadIsOther) {
       const title = otherTitle.trim();
       if (!title) return;
-      addMutation.mutate(
+      uploadMutation.mutate(
         {
+          file: selectedFile,
           teamId,
+          teamName,
           name: title,
-          required: false,
-          category: "additional",
           description: otherDescription.trim() || undefined,
+          category: "additional",
+          required: false,
           uploadedBy: currentUser.name,
         },
         { onSuccess: () => setUploadDialogOpen(false) },
       );
     } else {
-      updateMutation.mutate(
+      const targetDoc = standardDocs.find((d) => d.id === uploadTargetId);
+      uploadMutation.mutate(
         {
-          id: uploadTargetId,
+          file: selectedFile,
           teamId,
-          uploaded: true,
+          teamName,
+          documentId: uploadTargetId,
+          name: targetDoc?.name ?? "Document",
+          category: "standard",
+          required: targetDoc?.required ?? false,
           uploadedBy: currentUser.name,
         },
         { onSuccess: () => setUploadDialogOpen(false) },
       );
     }
-    // TODO: Once GDrive Edge Function is ready, send `selectedFile` here
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -187,7 +196,7 @@ const DocumentsTab = ({ teamId, currentUser }: Props) => {
   const additionalDocs = docs.filter((d) => d.category === "additional");
   const pendingDocs = standardDocs.filter((d) => !d.uploaded);
   const isMutating =
-    addMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
+    addMutation.isPending || updateMutation.isPending || uploadMutation.isPending || deleteMutation.isPending;
   const canSubmitUpload =
     selectedFile &&
     !isMutating &&
