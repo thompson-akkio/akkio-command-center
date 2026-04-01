@@ -68,7 +68,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* Header */}
-      <header className="border-b border-border px-6 py-3 flex items-center justify-between shrink-0">
+      <header className="relative z-50 border-b border-border px-6 py-3 flex items-center justify-between shrink-0">
         {/* Left: Logo + Team selector */}
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3">
