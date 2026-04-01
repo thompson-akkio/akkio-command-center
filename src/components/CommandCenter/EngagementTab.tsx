@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { Clock, MessageSquare, TrendingUp, Activity, Loader2, AlertCircle } from "lucide-react";
-import { MOCK_ENGAGEMENT, MOCK_TEAMS, MOCK_CURRENT_USER } from "@/lib/mockData";
+import { MOCK_ENGAGEMENT, MOCK_TEAMS } from "@/lib/mockData";
 import { supabase } from "@/lib/supabase";
 import { useTeamEngagement, useDailyActiveMinutes, type TeamEngagement } from "@/hooks/useEngagement";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -9,10 +9,18 @@ import DailySessionChart from "./charts/DailySessionChart";
 import PageMinutesChart from "./charts/PageMinutesChart";
 import { buildUserColorMap } from "./charts/chartColors";
 
+interface CurrentUser {
+  id: string;
+  name: string;
+  email: string;
+  isAdmin: boolean;
+  teamIds: string[];
+}
+
 interface Props {
   teamId: string;
   orgName: string | null;
-  currentUser: typeof MOCK_CURRENT_USER;
+  currentUser: CurrentUser;
 }
 
 const StatCard = ({

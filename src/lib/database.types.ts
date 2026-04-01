@@ -51,6 +51,54 @@ export interface Database {
           sort_order?: number;
         };
       };
+      profiles: {
+        Row: {
+          id: string;
+          email: string;
+          full_name: string | null;
+          is_admin: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          email: string;
+          full_name?: string | null;
+          is_admin?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          email?: string;
+          full_name?: string | null;
+          is_admin?: boolean;
+          updated_at?: string;
+        };
+      };
+      team_members: {
+        Row: {
+          id: string;
+          user_id: string;
+          team_id: string;
+          team_name: string;
+          role: "admin" | "member";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          team_id: string;
+          team_name: string;
+          role?: "admin" | "member";
+          created_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          team_id?: string;
+          team_name?: string;
+          role?: "admin" | "member";
+        };
+      };
     };
   };
 }
@@ -59,3 +107,6 @@ export interface Database {
 export type DocumentRow = Database["public"]["Tables"]["documents"]["Row"];
 export type DocumentInsert = Database["public"]["Tables"]["documents"]["Insert"];
 export type DocumentUpdate = Database["public"]["Tables"]["documents"]["Update"];
+
+export type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
+export type TeamMemberRow = Database["public"]["Tables"]["team_members"]["Row"];
