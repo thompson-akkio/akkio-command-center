@@ -238,6 +238,26 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // ── Verify caller is authenticated ──────────────────────────────
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Missing authorization header" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user: caller }, error: authError } =
+      await supabase.auth.getUser(token);
+
+    if (authError || !caller) {
+      return new Response(
+        JSON.stringify({ error: "Invalid or expired token" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
     const teamId = formData.get("teamId") as string;

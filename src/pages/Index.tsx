@@ -1,12 +1,13 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, Map, BarChart3, ChevronDown, Check } from "lucide-react";
+import { FileText, Map, BarChart3, ChevronDown, Check, LogOut } from "lucide-react";
 import DocumentsTab from "@/components/CommandCenter/DocumentsTab";
 import POCJourneyTab from "@/components/CommandCenter/POCJourneyTab";
 import EngagementTab from "@/components/CommandCenter/EngagementTab";
 import { MOCK_CURRENT_USER, MOCK_TEAMS } from "@/lib/mockData";
 import { supabase } from "@/lib/supabase";
 import { useOrgs } from "@/hooks/useEngagement";
+import { useAuth } from "@/contexts/AuthContext";
 
 type TabId = "documents" | "journey" | "engagement";
 
@@ -19,20 +20,39 @@ const tabs = [
 const ALL_USERS_OPTION = { id: "all", name: "All Users" };
 
 const Index = () => {
-  const user = MOCK_CURRENT_USER;
+  const auth = useAuth();
   const isSupabaseConfigured = !!supabase;
   const { data: orgs } = useOrgs();
+
+  // Build a currentUser object that works with both auth and mock modes
+  const user = useMemo(() => {
+    if (isSupabaseConfigured && auth.profile) {
+      return {
+        id: auth.profile.id,
+        name: auth.profile.full_name || auth.profile.email,
+        email: auth.profile.email,
+        isAdmin: auth.isAdmin,
+        teamIds: auth.teams.map((t) => t.team_id),
+      };
+    }
+    return MOCK_CURRENT_USER;
+  }, [isSupabaseConfigured, auth.profile, auth.isAdmin, auth.teams]);
 
   const mockTeams = MOCK_TEAMS.filter((t) => user.teamIds.includes(t.id));
 
   // Build dropdown options: when Supabase is configured, use real orgs; otherwise mock teams
   const dropdownOptions = useMemo(() => {
     if (isSupabaseConfigured) {
-      const orgOptions = (orgs ?? []).map((o) => ({ id: o.id, name: o.name }));
-      return [ALL_USERS_OPTION, ...orgOptions];
+      // Admins see all orgs; members see only their teams
+      if (auth.isAdmin) {
+        const orgOptions = (orgs ?? []).map((o) => ({ id: o.id, name: o.name }));
+        return [ALL_USERS_OPTION, ...orgOptions];
+      }
+      // Non-admin: show their team memberships
+      return auth.teams.map((t) => ({ id: t.team_id, name: t.team_name }));
     }
     return mockTeams.map((t) => ({ id: t.id, name: t.name }));
-  }, [isSupabaseConfigured, orgs, mockTeams]);
+  }, [isSupabaseConfigured, auth.isAdmin, auth.teams, orgs, mockTeams]);
 
   const [activeTab, setActiveTab] = useState<TabId>("documents");
   const [selectedOptionId, setSelectedOptionId] = useState(dropdownOptions[0]?.id ?? "all");
@@ -113,14 +133,25 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Right: current user */}
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center">
-            <span className="text-xs font-bold text-primary">
-              {user.name.split(" ").map((n) => n[0]).join("")}
-            </span>
+        {/* Right: current user + sign out */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center">
+              <span className="text-xs font-bold text-primary">
+                {user.name.split(" ").map((n) => n[0]).join("")}
+              </span>
+            </div>
+            <span className="text-sm text-muted-foreground">{user.name}</span>
           </div>
-          <span className="text-sm text-muted-foreground">{user.name}</span>
+          {isSupabaseConfigured && auth.session && (
+            <button
+              onClick={() => auth.signOut()}
+              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              title="Sign out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </header>
 

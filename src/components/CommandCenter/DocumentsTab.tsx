@@ -13,7 +13,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MOCK_ACHIEVEMENTS, MOCK_CURRENT_USER } from "@/lib/mockData";
+import { MOCK_ACHIEVEMENTS } from "@/lib/mockData";
 import {
   useDocuments,
   useAddDocument,
@@ -45,10 +45,18 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 
+interface CurrentUser {
+  id: string;
+  name: string;
+  email: string;
+  isAdmin: boolean;
+  teamIds: string[];
+}
+
 interface Props {
   teamId: string;
   teamName: string;
-  currentUser: typeof MOCK_CURRENT_USER;
+  currentUser: CurrentUser;
 }
 
 const DocumentsTab = ({ teamId, teamName, currentUser }: Props) => {
