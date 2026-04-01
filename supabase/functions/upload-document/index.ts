@@ -161,6 +161,19 @@ async function getTeamFolderId(
   return createFolder(accessToken, GDRIVE_PARENT_FOLDER_ID, teamName);
 }
 
+/** Concatenate multiple Uint8Arrays into one */
+function concat(...arrays: Uint8Array[]): Uint8Array {
+  let total = 0;
+  for (const a of arrays) total += a.length;
+  const result = new Uint8Array(total);
+  let offset = 0;
+  for (const a of arrays) {
+    result.set(a, offset);
+    offset += a.length;
+  }
+  return result;
+}
+
 /** Upload a file to a specific Drive folder. Returns the file ID and webViewLink. */
 async function uploadFileToDrive(
   accessToken: string,
@@ -169,22 +182,26 @@ async function uploadFileToDrive(
   fileContent: ArrayBuffer,
   mimeType: string
 ): Promise<{ fileId: string; webViewLink: string }> {
-  // Use multipart upload (metadata + media in one request)
+  const encoder = new TextEncoder();
+  const boundary = "----EdgeFunctionBoundary";
+
   const metadata = JSON.stringify({
     name: fileName,
     parents: [folderId],
   });
 
-  const boundary = "----EdgeFunctionBoundary";
-  const body =
-    `--${boundary}\r\n` +
-    `Content-Type: application/json; charset=UTF-8\r\n\r\n` +
-    `${metadata}\r\n` +
-    `--${boundary}\r\n` +
-    `Content-Type: ${mimeType}\r\n` +
-    `Content-Transfer-Encoding: base64\r\n\r\n` +
-    `${btoa(String.fromCharCode(...new Uint8Array(fileContent)))}\r\n` +
-    `--${boundary}--`;
+  // Build multipart body as raw bytes to avoid stack overflow on large files
+  const body = concat(
+    encoder.encode(
+      `--${boundary}\r\n` +
+      `Content-Type: application/json; charset=UTF-8\r\n\r\n` +
+      `${metadata}\r\n` +
+      `--${boundary}\r\n` +
+      `Content-Type: ${mimeType}\r\n\r\n`
+    ),
+    new Uint8Array(fileContent),
+    encoder.encode(`\r\n--${boundary}--`),
+  );
 
   const res = await fetch(
     "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink",
