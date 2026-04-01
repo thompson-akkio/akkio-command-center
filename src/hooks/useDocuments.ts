@@ -281,6 +281,7 @@ export function useUploadDocument() {
       if (input.documentId) formData.append("documentId", input.documentId);
       if (input.description) formData.append("description", input.description);
 
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
       const { data: { session } } = await supabase.auth.getSession();
 
       const res = await fetch(
@@ -288,7 +289,8 @@ export function useUploadDocument() {
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${session?.access_token ?? import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            apikey: anonKey,
+            Authorization: `Bearer ${session?.access_token ?? anonKey}`,
           },
           body: formData,
         }
