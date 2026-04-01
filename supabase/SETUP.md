@@ -98,6 +98,70 @@ Once the Supabase pipeline is verified working:
    - `user_id-fn` → replaced by Edge Function `syncUsers()`
    - `org_id-fn` → replaced by Edge Function `syncUsers()` (merged)
 
+## Step 6: Set Up Document Uploads → Google Drive
+
+The `upload-document` Edge Function receives file uploads from the Documents tab
+and stores them in Google Drive under a per-team folder structure:
+
+```
+Command Center Uploads/        ← shared GDrive folder
+├── Acme Corp/                 ← auto-created per team
+│   ├── Data Dictionary.pdf
+│   └── Use Case Brief.docx
+├── Globex Inc/
+│   └── ...
+```
+
+### 6a. Create a Google Cloud Service Account
+
+1. Go to Google Cloud Console → IAM & Admin → Service Accounts
+2. Create a service account (e.g. `command-center-uploads`)
+3. No roles needed on the GCP project itself — Drive access is via folder sharing
+4. Create a JSON key and download it
+
+### 6b. Set Up the Google Drive Folder
+
+1. In Google Drive, create a folder called **"Command Center Uploads"**
+2. Right-click → Share → add the service account email
+   (e.g. `command-center-uploads@your-project.iam.gserviceaccount.com`)
+   with **Editor** access
+3. Copy the folder ID from the URL: `https://drive.google.com/drive/folders/<FOLDER_ID>`
+
+### 6c. Run the Documents Migration
+
+In the Supabase SQL Editor, run:
+```
+supabase/migrations/002_documents_table.sql
+```
+
+### 6d. Set Secrets and Deploy
+
+```bash
+supabase secrets set GDRIVE_SERVICE_ACCOUNT_KEY='{"type":"service_account",...}'
+supabase secrets set GDRIVE_PARENT_FOLDER_ID=your-folder-id-here
+supabase functions deploy upload-document
+```
+
+### 6e. Verify
+
+```bash
+# Test with curl (replace values):
+curl -X POST https://your-project.supabase.co/functions/v1/upload-document \
+  -H "Authorization: Bearer your-anon-key" \
+  -F "file=@test.pdf" \
+  -F "teamId=team-1" \
+  -F "teamName=Acme Corp" \
+  -F "name=Test Document" \
+  -F "category=additional" \
+  -F "required=false" \
+  -F "uploadedBy=Test User"
+```
+
+Check that:
+1. A folder "Acme Corp" appears inside "Command Center Uploads" in Drive
+2. The file appears in that folder
+3. The `documents` table has a new row with `gdrive_file_id` populated
+
 ## Verification
 
 1. Trigger the Edge Function manually:

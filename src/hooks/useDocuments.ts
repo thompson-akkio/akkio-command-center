@@ -217,6 +217,97 @@ export function useUpdateDocument() {
   });
 }
 
+// ── Upload a document (calls Edge Function → GDrive + DB update) ───────────
+export interface UploadDocumentInput {
+  file: File;
+  teamId: string;
+  teamName: string;
+  /** If uploading against an existing checklist item, pass its ID */
+  documentId?: string;
+  name: string;
+  description?: string;
+  category: "standard" | "additional";
+  required: boolean;
+  uploadedBy: string;
+}
+
+export function useUploadDocument() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: UploadDocumentInput): Promise<Document> => {
+      if (!supabase) {
+        // Mock fallback — simulate the upload locally
+        const docs = getMockDocs(input.teamId);
+        if (input.documentId) {
+          const idx = docs.findIndex((d) => d.id === input.documentId);
+          if (idx !== -1) {
+            docs[idx] = {
+              ...docs[idx],
+              uploaded: true,
+              uploadedBy: input.uploadedBy,
+              uploadedAt: new Date().toISOString().slice(0, 10),
+              gdriveFileId: `mock-gdrive-${++mockIdCounter}`,
+            };
+            return docs[idx];
+          }
+        }
+        const newDoc: Document = {
+          id: `mock-${++mockIdCounter}`,
+          teamId: input.teamId,
+          name: input.name,
+          description: input.description ?? null,
+          required: input.required,
+          uploaded: true,
+          uploadedBy: input.uploadedBy,
+          uploadedAt: new Date().toISOString().slice(0, 10),
+          category: input.category,
+          gdriveFileId: `mock-gdrive-${mockIdCounter}`,
+          sortOrder: docs.length,
+        };
+        docs.push(newDoc);
+        return newDoc;
+      }
+
+      // Build multipart form data for the Edge Function
+      const formData = new FormData();
+      formData.append("file", input.file);
+      formData.append("teamId", input.teamId);
+      formData.append("teamName", input.teamName);
+      formData.append("name", input.name);
+      formData.append("category", input.category);
+      formData.append("required", String(input.required));
+      formData.append("uploadedBy", input.uploadedBy);
+      if (input.documentId) formData.append("documentId", input.documentId);
+      if (input.description) formData.append("description", input.description);
+
+      const { data: { session } } = await supabase.auth.getSession();
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-document`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session?.access_token ?? import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: formData,
+        }
+      );
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error(err.error || "Upload failed");
+      }
+
+      const result = await res.json();
+      return fromRow(result.document);
+    },
+    onSuccess: (_data, input) => {
+      qc.invalidateQueries({ queryKey: documentKeys.team(input.teamId) });
+    },
+  });
+}
+
 // ── Delete a document item (admin) ─────────────────────────────────────────
 export interface DeleteDocumentInput {
   id: string;

@@ -162,7 +162,7 @@ const Index = () => {
             className="h-full"
           >
             {activeTab === "documents" && (
-              <DocumentsTab teamId={selectedOptionId} currentUser={user} />
+              <DocumentsTab teamId={selectedOptionId} teamName={selectedOption?.name ?? ""} currentUser={user} />
             )}
             {activeTab === "journey" && (
               <POCJourneyTab teamId={selectedOptionId} isAdmin={user.isAdmin} />
