@@ -13,7 +13,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MOCK_ACHIEVEMENTS } from "@/lib/mockData";
+// import { MOCK_ACHIEVEMENTS } from "@/lib/mockData";
 import {
   useDocuments,
   useAddDocument,
@@ -229,7 +229,7 @@ const DocumentsTab = ({ teamId, teamName, currentUser }: Props) => {
     <div className="flex h-[calc(100vh-105px)]">
       {/* Main content */}
       <div className="flex-1 p-6 overflow-auto">
-        {/* Achievements */}
+        {/* Achievements — hidden until real achievement tracking is implemented
         {MOCK_ACHIEVEMENTS.length > 0 && (
           <div className="mb-6">
             <h3 className="text-xs text-muted-foreground font-mono uppercase tracking-wider mb-3">
@@ -254,6 +254,7 @@ const DocumentsTab = ({ teamId, teamName, currentUser }: Props) => {
             </div>
           </div>
         )}
+        */}
 
         {/* Document Checklist */}
         <div className="mb-6">
