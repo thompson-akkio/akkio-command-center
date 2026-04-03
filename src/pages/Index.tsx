@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, Map, BarChart3, ChevronDown, Check, LogOut } from "lucide-react";
+import { FileText, Map, BarChart3, ChevronDown, Check, LogOut, UserPlus } from "lucide-react";
 import DocumentsTab from "@/components/CommandCenter/DocumentsTab";
 import POCJourneyTab from "@/components/CommandCenter/POCJourneyTab";
 import EngagementTab from "@/components/CommandCenter/EngagementTab";
+import InviteUsersDialog from "@/components/CommandCenter/InviteUsersDialog";
 import { MOCK_CURRENT_USER, MOCK_TEAMS } from "@/lib/mockData";
 import { supabase } from "@/lib/supabase";
 import { useOrgs } from "@/hooks/useEngagement";
@@ -57,6 +58,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState<TabId>("documents");
   const [selectedOptionId, setSelectedOptionId] = useState(dropdownOptions[0]?.id ?? "all");
   const [teamDropdownOpen, setTeamDropdownOpen] = useState(false);
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
 
   const selectedOption = dropdownOptions.find((o) => o.id === selectedOptionId) ?? dropdownOptions[0];
 
@@ -133,8 +135,17 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Right: current user + sign out */}
+        {/* Right: invite + current user + sign out */}
         <div className="flex items-center gap-3">
+          {user.isAdmin && isSupabaseConfigured && (
+            <button
+              onClick={() => setInviteDialogOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              Invite Users
+            </button>
+          )}
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center">
               <span className="text-xs font-bold text-primary">
@@ -210,6 +221,16 @@ const Index = () => {
         <div
           className="fixed inset-0 z-40"
           onClick={() => setTeamDropdownOpen(false)}
+        />
+      )}
+
+      {/* Invite Users Dialog (admin only) */}
+      {user.isAdmin && (
+        <InviteUsersDialog
+          open={inviteDialogOpen}
+          onOpenChange={setInviteDialogOpen}
+          defaultTeamId={selectedOption?.id !== "all" ? selectedOption?.id : undefined}
+          defaultTeamName={selectedOption?.id !== "all" ? selectedOption?.name : undefined}
         />
       )}
     </div>
