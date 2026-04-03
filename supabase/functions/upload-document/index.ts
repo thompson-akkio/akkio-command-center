@@ -238,28 +238,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // ── Verify caller is authenticated ──────────────────────────────
-    // Create a per-request client with the caller's JWT to verify identity.
-    // The global `supabase` (service-role) is still used for DB writes.
-    const authHeader = req.headers.get("Authorization") ?? req.headers.get("authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Missing authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user: caller }, error: authError } = await userClient.auth.getUser();
-
-    if (authError || !caller) {
-      return new Response(
-        JSON.stringify({ error: "Invalid or expired token" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // Auth is enforced by the Supabase gateway (verify_jwt = true by default).
+    // Unauthenticated requests never reach this function — the gateway returns
+    // 401 before forwarding. No additional JWT check needed here.
 
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
