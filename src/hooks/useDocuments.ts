@@ -281,27 +281,15 @@ export function useUploadDocument() {
       if (input.documentId) formData.append("documentId", input.documentId);
       if (input.description) formData.append("description", input.description);
 
-      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-      const { data: { session } } = await supabase.auth.getSession();
+      // Use supabase.functions.invoke() which handles auth correctly
+      // with the edge function relay (vs raw fetch which was getting 401)
+      const { data, error } = await supabase.functions.invoke("upload-document", {
+        body: formData,
+      });
 
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-document`,
-        {
-          method: "POST",
-          headers: {
-            apikey: anonKey,
-            Authorization: `Bearer ${session?.access_token ?? anonKey}`,
-          },
-          body: formData,
-        }
-      );
+      if (error) throw new Error(error.message || "Upload failed");
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: res.statusText }));
-        throw new Error(err.error || "Upload failed");
-      }
-
-      const result = await res.json();
+      const result = typeof data === "string" ? JSON.parse(data) : data;
       return fromRow(result.document);
     },
     onSuccess: (_data, input) => {
