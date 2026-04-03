@@ -238,9 +238,28 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Auth is enforced by the Supabase gateway (verify_jwt = true by default).
-    // Unauthenticated requests never reach this function — the gateway returns
-    // 401 before forwarding. No additional JWT check needed here.
+    // ── Verify caller is authenticated ──────────────────────────────
+    // Deployed with --no-verify-jwt so the runtime passes requests through.
+    // We verify the JWT ourselves using a per-request client.
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Missing authorization header" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user: caller }, error: authError } = await userClient.auth.getUser();
+
+    if (authError || !caller) {
+      return new Response(
+        JSON.stringify({ error: authError?.message ?? "Invalid or expired token" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
