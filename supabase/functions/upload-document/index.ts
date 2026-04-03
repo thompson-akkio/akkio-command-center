@@ -239,7 +239,9 @@ Deno.serve(async (req) => {
 
   try {
     // ── Verify caller is authenticated ──────────────────────────────
-    const authHeader = req.headers.get("authorization");
+    // Create a per-request client with the caller's JWT to verify identity.
+    // The global `supabase` (service-role) is still used for DB writes.
+    const authHeader = req.headers.get("Authorization") ?? req.headers.get("authorization");
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: "Missing authorization header" }),
@@ -247,9 +249,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user: caller }, error: authError } =
-      await supabase.auth.getUser(token);
+    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user: caller }, error: authError } = await userClient.auth.getUser();
 
     if (authError || !caller) {
       return new Response(

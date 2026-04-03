@@ -48,14 +48,16 @@ Deno.serve(async (req) => {
 
   try {
     // ── Verify caller is an authenticated admin ───────────────────────
-    const authHeader = req.headers.get("authorization");
+    const authHeader = req.headers.get("Authorization") ?? req.headers.get("authorization");
     if (!authHeader) {
       return jsonResponse({ error: "Missing authorization header" }, 401);
     }
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user: caller }, error: authError } =
-      await supabaseAdmin.auth.getUser(token);
+    // Create a per-request client with the caller's JWT to verify identity
+    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user: caller }, error: authError } = await userClient.auth.getUser();
 
     if (authError || !caller) {
       return jsonResponse({ error: "Invalid or expired token" }, 401);
