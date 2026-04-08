@@ -99,6 +99,26 @@ export interface Database {
           role?: "admin" | "member";
         };
       };
+      team_poc_progress: {
+        Row: {
+          team_id: string;
+          stage: number;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          team_id: string;
+          stage?: number;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          team_id?: string;
+          stage?: number;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+      };
     };
   };
 }
@@ -110,3 +130,7 @@ export type DocumentUpdate = Database["public"]["Tables"]["documents"]["Update"]
 
 export type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 export type TeamMemberRow = Database["public"]["Tables"]["team_members"]["Row"];
+
+export type PocProgressRow = Database["public"]["Tables"]["team_poc_progress"]["Row"];
+export type PocProgressInsert = Database["public"]["Tables"]["team_poc_progress"]["Insert"];
+export type PocProgressUpdate = Database["public"]["Tables"]["team_poc_progress"]["Update"];
