@@ -432,7 +432,7 @@ const DocumentsTab = ({ teamId, teamName, currentUser }: Props) => {
       </div>
 
       {/* Help Bot Panel */}
-      <HelpBot />
+      <HelpBot teamId={teamId} />
 
       {/* ── Admin: Add / Edit Document Dialog ─────────────────────────── */}
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
