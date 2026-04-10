@@ -1,43 +1,33 @@
-import { useState } from "react";
-import { Send, Bot, User, X, MessageSquare } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Send, Bot, User, X, MessageSquare, RotateCcw, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import ReactMarkdown from "react-markdown";
+import { useHelpBot } from "@/hooks/useHelpBot";
 
-interface Message {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
+interface Props {
+  teamId: string;
 }
 
-const INITIAL_MESSAGES: Message[] = [
-  {
-    id: "welcome",
-    role: "assistant",
-    content: "Hi! I'm the Akkio POC Help Bot. Ask me anything about the required documents, the POC process, or Akkio's features.",
-  },
-];
-
-const HelpBot = () => {
+const HelpBot = ({ teamId }: Props) => {
   const [isOpen, setIsOpen] = useState(true);
-  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
   const [input, setInput] = useState("");
+  const { messages, isLoading, sendMessage, clearHistory } = useHelpBot(teamId);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll on new messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // Clear conversation when team changes
+  useEffect(() => {
+    clearHistory();
+  }, [teamId]);
 
   const handleSend = () => {
-    if (!input.trim()) return;
-    const userMsg: Message = { id: Date.now().toString(), role: "user", content: input };
-    setMessages((prev) => [...prev, userMsg]);
+    if (!input.trim() || isLoading) return;
+    sendMessage(input);
     setInput("");
-
-    // Mock bot response
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: (Date.now() + 1).toString(),
-          role: "assistant",
-          content: "Thanks for your question! This is a mock response. Once connected to your Claude project backend, I'll provide real answers about your POC documents and process.",
-        },
-      ]);
-    }, 800);
   };
 
   if (!isOpen) {
@@ -60,9 +50,21 @@ const HelpBot = () => {
           <span className="text-sm font-semibold">Help Bot</span>
           <span className="w-2 h-2 rounded-full bg-success animate-pulse-glow" />
         </div>
-        <button onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-foreground">
-          <X className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={clearHistory}
+            className="text-muted-foreground hover:text-foreground p-1"
+            title="Clear chat"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="text-muted-foreground hover:text-foreground p-1"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Messages */}
@@ -87,7 +89,21 @@ const HelpBot = () => {
                     : "bg-secondary text-secondary-foreground"
                 }`}
               >
-                {msg.content}
+                {msg.role === "assistant" ? (
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }) => <p className="mb-1 last:mb-0">{children}</p>,
+                      ul: ({ children }) => <ul className="list-disc pl-4 mb-1">{children}</ul>,
+                      ol: ({ children }) => <ol className="list-decimal pl-4 mb-1">{children}</ol>,
+                      li: ({ children }) => <li className="mb-0.5">{children}</li>,
+                      strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                    }}
+                  >
+                    {msg.content}
+                  </ReactMarkdown>
+                ) : (
+                  msg.content
+                )}
               </div>
               {msg.role === "user" && (
                 <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center shrink-0 mt-0.5">
@@ -97,6 +113,24 @@ const HelpBot = () => {
             </motion.div>
           ))}
         </AnimatePresence>
+
+        {/* Loading indicator */}
+        {isLoading && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex gap-2"
+          >
+            <div className="w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center shrink-0 mt-0.5">
+              <Bot className="w-3.5 h-3.5 text-primary" />
+            </div>
+            <div className="rounded-lg px-3 py-2 bg-secondary">
+              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+            </div>
+          </motion.div>
+        )}
+
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
@@ -107,11 +141,13 @@ const HelpBot = () => {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
             placeholder="Ask about documents..."
-            className="flex-1 bg-secondary rounded-md px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-primary/50"
+            disabled={isLoading}
+            className="flex-1 bg-secondary rounded-md px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-50"
           />
           <button
             onClick={handleSend}
-            className="w-8 h-8 rounded-md bg-primary flex items-center justify-center hover:bg-primary/90 transition-colors"
+            disabled={isLoading || !input.trim()}
+            className="w-8 h-8 rounded-md bg-primary flex items-center justify-center hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
             <Send className="w-3.5 h-3.5 text-primary-foreground" />
           </button>
