@@ -20,32 +20,20 @@ export function useInviteUsers() {
     mutationFn: async (inputs: InviteInput[]): Promise<InviteResult[]> => {
       if (!supabase) throw new Error("Supabase not configured");
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
-
       const results: InviteResult[] = [];
 
       // Invite sequentially to avoid rate limits
       for (const input of inputs) {
         try {
-          const res = await fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-user`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-                Authorization: `Bearer ${session.access_token}`,
-              },
-              body: JSON.stringify(input),
-            }
-          );
+          const { data, error } = await supabase.functions.invoke("invite-user", {
+            body: input,
+          });
 
-          const data = await res.json();
-          if (!res.ok) {
-            results.push({ email: input.email, error: data.error || "Invite failed" });
+          if (error) {
+            results.push({ email: input.email, error: error.message || "Invite failed" });
           } else {
-            results.push({ email: input.email, success: true, warning: data.warning });
+            const result = typeof data === "string" ? JSON.parse(data) : data;
+            results.push({ email: input.email, success: result.success, warning: result.warning });
           }
         } catch (err) {
           results.push({ email: input.email, error: (err as Error).message });
