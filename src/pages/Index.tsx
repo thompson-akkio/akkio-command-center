@@ -5,6 +5,7 @@ import DocumentsTab from "@/components/CommandCenter/DocumentsTab";
 import POCJourneyTab from "@/components/CommandCenter/POCJourneyTab";
 import EngagementTab from "@/components/CommandCenter/EngagementTab";
 import InviteUsersDialog from "@/components/CommandCenter/InviteUsersDialog";
+import IntroDialog from "@/components/CommandCenter/IntroDialog";
 import { MOCK_CURRENT_USER, MOCK_TEAMS } from "@/lib/mockData";
 import { supabase } from "@/lib/supabase";
 import { useOrgs } from "@/hooks/useEngagement";
@@ -59,6 +60,7 @@ const Index = () => {
   const [selectedOptionId, setSelectedOptionId] = useState(dropdownOptions[0]?.id ?? "all");
   const [teamDropdownOpen, setTeamDropdownOpen] = useState(false);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [introOpen, setIntroOpen] = useState(true);
 
   const selectedOption = dropdownOptions.find((o) => o.id === selectedOptionId) ?? dropdownOptions[0];
 
@@ -233,6 +235,16 @@ const Index = () => {
           defaultTeamName={selectedOption?.id !== "all" ? selectedOption?.name : undefined}
         />
       )}
+
+      {/* Intro walkthrough for first-time users */}
+      <IntroDialog
+        open={introOpen && !(auth.profile?.has_dismissed_intro)}
+        onClose={() => setIntroOpen(false)}
+        onDismissPermanently={() => {
+          setIntroOpen(false);
+          auth.dismissIntro();
+        }}
+      />
     </div>
   );
 };
