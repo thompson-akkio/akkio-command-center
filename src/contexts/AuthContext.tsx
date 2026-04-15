@@ -7,6 +7,7 @@ export interface Profile {
   email: string;
   full_name: string | null;
   is_admin: boolean;
+  has_dismissed_intro: boolean;
 }
 
 export interface TeamMembership {
@@ -26,6 +27,7 @@ interface AuthState {
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   updatePassword: (password: string) => Promise<{ error: string | null }>;
+  dismissIntro: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -111,6 +113,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   };
 
+  const dismissIntro = async () => {
+    if (!supabase || !session?.user) return;
+    await supabase
+      .from("profiles")
+      .update({ has_dismissed_intro: true })
+      .eq("id", session.user.id);
+    setProfile((prev) => (prev ? { ...prev, has_dismissed_intro: true } : prev));
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -123,6 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signIn,
         signOut,
         updatePassword,
+        dismissIntro,
       }}
     >
       {children}
