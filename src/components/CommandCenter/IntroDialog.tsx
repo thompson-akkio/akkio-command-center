@@ -19,7 +19,7 @@ const features = [
     icon: FileText,
     title: "Documents",
     description:
-      "Upload and track required deliverables for your POC. See what's been submitted, what's still needed, and share files with your team.",
+      "Upload and track required POC deliverables like your use case brief, data dictionary, and success criteria. Note: this does not include the data you'll upload or connect directly to the Akkio platform.",
   },
   {
     icon: Map,
