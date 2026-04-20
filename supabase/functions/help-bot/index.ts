@@ -27,7 +27,8 @@ const AKKIO_DOCS_FOLDER_ID = Deno.env.get("AKKIO_DOCS_FOLDER_ID")!;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-const MAX_TEXT_PER_DOC = 50_000; // chars
+const MAX_TEXT_PER_DOC = 20_000; // chars per individual doc
+const MAX_TOTAL_CONTEXT = 400_000; // chars total across all docs (~100k tokens, leaves room for conversation + response within 200k window)
 const KNOWLEDGE_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 // ── CORS headers ──────────────────────────────────────────────────────────────
@@ -210,6 +211,26 @@ function truncateText(text: string): string {
   return text.substring(0, MAX_TEXT_PER_DOC) + "\n[... truncated ...]";
 }
 
+/** Join parts but stop once total length exceeds budget. */
+function joinWithBudget(parts: string[], budget: number): string {
+  const out: string[] = [];
+  let used = 0;
+  let skipped = 0;
+  for (const part of parts) {
+    if (used + part.length > budget) {
+      skipped = parts.length - out.length;
+      break;
+    }
+    out.push(part);
+    used += part.length + 2; // +2 for "\n\n" separator
+  }
+  let result = out.join("\n\n");
+  if (skipped > 0) {
+    result += `\n\n[${skipped} additional document(s) omitted to stay within context limits]`;
+  }
+  return result;
+}
+
 // ── Context Gathering ─────────────────────────────────────────────────────────
 
 /** Fetch and cache Akkio platform knowledge docs from GDrive. */
@@ -270,7 +291,7 @@ async function getAkkioPlatformContext(accessToken: string): Promise<string> {
     }
   }
 
-  return contextParts.join("\n\n");
+  return joinWithBudget(contextParts, Math.floor(MAX_TOTAL_CONTEXT * 0.75));
 }
 
 /** Fetch and cache team-specific document text. */
@@ -324,7 +345,7 @@ async function getTeamDocumentContext(
     contextParts.push(`--- Document: ${doc.name} ---\n${text}`);
   }
 
-  return contextParts.join("\n\n");
+  return joinWithBudget(contextParts, Math.floor(MAX_TOTAL_CONTEXT * 0.25));
 }
 
 // ── Claude API ────────────────────────────────────────────────────────────────
