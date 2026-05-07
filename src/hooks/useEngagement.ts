@@ -38,24 +38,21 @@ export interface OrgOption {
 async function fetchOrgs(): Promise<OrgOption[]> {
   if (!supabase) return [];
 
+  // Reads from the `orgs` table (synced from BigQuery dim_org) rather than
+  // deriving from users.current_org_name — so orgs with no non-Akkio users
+  // yet still appear in the Command Center dropdown.
   const { data, error } = await supabase
-    .from("users")
-    .select("current_org_name")
+    .from("orgs")
+    .select("org_name")
     .eq("project_id", BQ_PROJECT_ID)
-    .not("current_org_name", "is", null);
+    .order("org_name", { ascending: true });
 
   if (error) throw error;
   if (!data) return [];
 
-  // Deduplicate org names client-side
-  const nameSet = new Set<string>();
-  for (const row of data) {
-    const name = row.current_org_name as string | null;
-    if (typeof name === "string" && name.trim()) nameSet.add(name.trim());
-  }
-
-  return Array.from(nameSet)
-    .sort()
+  return data
+    .map((row) => (row.org_name as string | null)?.trim() ?? "")
+    .filter((name) => name.length > 0)
     .map((name) => ({
       id: `org-${name.toLowerCase().replace(/\s+/g, "-")}`,
       name,
