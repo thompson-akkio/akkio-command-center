@@ -175,6 +175,43 @@ async function updateSyncTime(projectId: string, syncType: string, rowCount: num
     });
 }
 
+async function syncOrgs(accessToken: string, projectId: string) {
+  console.log(`[orgs] Syncing for project ${projectId}`);
+
+  // dim_org is the canonical org registry. We pull the full list every run
+  // (it's small, ~one row per org) so newly created orgs appear immediately
+  // in the Command Center dropdown — even before any non-Akkio users join.
+  const rows = await queryBigQuery(
+    accessToken,
+    projectId,
+    `SELECT DISTINCT org_name
+     FROM \`${projectId}.lakehouse.dim_org\`
+     WHERE org_name IS NOT NULL
+    `
+  );
+
+  if (rows.length === 0) return 0;
+
+  const mapped = dedup(
+    rows
+      .map((r) => ({
+        project_id: projectId,
+        org_name: String(r.org_name).trim(),
+        updated_at: new Date().toISOString(),
+      }))
+      .filter((r) => r.org_name.length > 0),
+    (r) => `${r.project_id}|${r.org_name}`
+  );
+
+  const { error } = await supabase.from("orgs").upsert(mapped, {
+    onConflict: "project_id,org_name",
+  });
+
+  if (error) throw error;
+  await updateSyncTime(projectId, "orgs", mapped.length);
+  return mapped.length;
+}
+
 async function syncUsers(accessToken: string, projectId: string) {
   const lastSync = await getLastSyncTime(projectId, "users");
   console.log(`[users] Syncing since ${lastSync} for project ${projectId}`);
@@ -357,6 +394,7 @@ async function syncLoginEvents(accessToken: string, projectId: string) {
 async function syncProject(accessToken: string, projectId: string) {
   return {
     projectId,
+    orgs: await syncOrgs(accessToken, projectId),
     users: await syncUsers(accessToken, projectId),
     activeMinutes: await syncActiveMinutes(accessToken, projectId),
     chats: await syncChats(accessToken, projectId),
