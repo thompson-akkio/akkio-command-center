@@ -14,9 +14,9 @@ import { useAuth } from "@/contexts/AuthContext";
 type TabId = "documents" | "journey" | "engagement";
 
 const tabs = [
-  { id: "documents" as TabId, label: "Documents", icon: FileText },
   { id: "journey" as TabId, label: "POC Journey", icon: Map },
   { id: "engagement" as TabId, label: "Engagement", icon: BarChart3 },
+  { id: "documents" as TabId, label: "Documents", icon: FileText },
 ];
 
 const ALL_USERS_OPTION = { id: "all", name: "All Users" };
@@ -56,7 +56,7 @@ const Index = () => {
     return mockTeams.map((t) => ({ id: t.id, name: t.name }));
   }, [isSupabaseConfigured, auth.isAdmin, auth.teams, orgs, mockTeams]);
 
-  const [activeTab, setActiveTab] = useState<TabId>("documents");
+  const [activeTab, setActiveTab] = useState<TabId>("journey");
   const [selectedOptionId, setSelectedOptionId] = useState(dropdownOptions[0]?.id ?? "all");
   const [teamDropdownOpen, setTeamDropdownOpen] = useState(false);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);

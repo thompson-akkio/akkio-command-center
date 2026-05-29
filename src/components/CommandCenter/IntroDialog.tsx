@@ -16,12 +16,6 @@ interface Props {
 
 const features = [
   {
-    icon: FileText,
-    title: "Documents",
-    description:
-      "Upload and track required POC deliverables like your use case brief, data dictionary, and success criteria. Note: this does not include the data you'll upload or connect directly to the Akkio platform.",
-  },
-  {
     icon: Map,
     title: "POC Journey",
     description:
@@ -32,6 +26,12 @@ const features = [
     title: "Engagement",
     description:
       "See how your team is using Akkio — active hours, chat activity, and login trends — so you can get the most out of your evaluation.",
+  },
+  {
+    icon: FileText,
+    title: "Documents",
+    description:
+      "Upload and track required POC deliverables like your use case brief, data dictionary, and success criteria. Note: this does not include the data you'll upload or connect directly to the Akkio platform.",
   },
 ];
 
